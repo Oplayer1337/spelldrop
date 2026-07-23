@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useReducer, useState, type CSSProperties } from 'react'
 import { configuratorAssets } from '../../data/assets'
 import {
   bottleOptions,
@@ -10,6 +10,8 @@ import {
 import { configuratorReducer, getSummaryItems, initialConfiguratorState } from '../../state/configurator'
 import type {
   ConfiguratorOption,
+  ConfiguratorSelections,
+  ConfiguratorStepId,
   DeliveryFeatureKind,
   DeliveryOption,
   SelectionValue,
@@ -81,10 +83,109 @@ function DeliveryFeatureIcon({ kind }: { kind: DeliveryFeatureKind }) {
   return <span className={styles.featureIcon} data-kind={kind} aria-hidden="true" />
 }
 
+interface StepContentProps {
+  view: ConfiguratorStepId
+  selections: ConfiguratorSelections
+  onSelectSingle: (field: SingleSelectionField, option: ConfiguratorOption) => void
+  onToggleEffect: (option: ConfiguratorOption) => void
+}
+
+function StepContent({ view, selections, onSelectSingle, onToggleEffect }: StepContentProps) {
+  if (view === 'situation') {
+    return (
+      <SelectionGroup legend="Выберите ситуацию">
+        <div className={styles.optionGrid}>
+          {situationOptions.map((option) => (
+            <SelectionCard
+              key={option.id}
+              title={option.title}
+              description={option.description}
+              imageSrc={option.imageSrc}
+              tone={option.tone}
+              selected={isSelected(selections.situation, option)}
+              onSelect={() => onSelectSingle('situation', option)}
+            />
+          ))}
+        </div>
+      </SelectionGroup>
+    )
+  }
+
+  if (view === 'effects') {
+    return (
+      <SelectionGroup legend="Выберите дополнительные эффекты">
+        <div className={styles.optionGrid}>
+          {effectOptions.map((option) => {
+            const selected = selections.effects.some((effect) => effect.id === option.id)
+            const isLimitReached = selections.effects.length >= 3
+
+            return (
+              <SelectionCard
+                key={option.id}
+                title={option.title}
+                description={option.description}
+                imageSrc={option.imageSrc}
+                tone={option.tone}
+                selected={selected}
+                disabled={isLimitReached && !selected}
+                onSelect={() => onToggleEffect(option)}
+              />
+            )
+          })}
+        </div>
+      </SelectionGroup>
+    )
+  }
+
+  if (view === 'bottle') {
+    return (
+      <SelectionGroup legend="Выберите размер флакона">
+        <div className={`${styles.optionGrid} ${styles.bottleGrid}`}>
+          {bottleOptions.map((option) => (
+            <SelectionCard
+              key={option.id}
+              title={option.title}
+              description={option.description}
+              imageSrc={option.imageSrc}
+              tone={option.tone}
+              variant="bottle"
+              selected={isSelected(selections.bottle, option)}
+              onSelect={() => onSelectSingle('bottle', option)}
+            />
+          ))}
+        </div>
+      </SelectionGroup>
+    )
+  }
+
+  return (
+    <SelectionGroup legend="Выберите способ доставки">
+      <div className={styles.deliveryList}>
+        {deliveryOptions.map((option) => (
+          <DeliveryCard
+            key={option.id}
+            option={option}
+            selected={isSelected(selections.delivery, option)}
+            onSelect={() => onSelectSingle('delivery', option)}
+          />
+        ))}
+      </div>
+    </SelectionGroup>
+  )
+}
+
 export function Configurator() {
   const [state, dispatch] = useReducer(configuratorReducer, initialConfiguratorState)
   const stepHeadingRef = useRef<HTMLHeadingElement>(null)
+  const stepContentStackRef = useRef<HTMLDivElement>(null)
+  const incomingContentRef = useRef<HTMLDivElement>(null)
   const shouldFocusStep = useRef(false)
+  const displayedStepRef = useRef<ConfiguratorStepId>('situation')
+  const [displayedStep, setDisplayedStep] = useState<ConfiguratorStepId>('situation')
+  const [previousStep, setPreviousStep] = useState<ConfiguratorStepId | null>(null)
+  const [isStepTransitioning, setIsStepTransitioning] = useState(false)
+  const [transitionHeight, setTransitionHeight] = useState<number | null>(null)
+  const [heightReserve, setHeightReserve] = useState(0)
   const isSuccess = state.currentView === 'success'
   const currentIndex = isSuccess
     ? configuratorSteps.length - 1
@@ -99,9 +200,82 @@ export function Configurator() {
       return
     }
 
-    stepHeadingRef.current?.focus()
+    stepHeadingRef.current?.focus({ preventScroll: true })
     shouldFocusStep.current = false
   }, [state.currentView])
+
+  useLayoutEffect(() => {
+    if (state.currentView === 'success' || state.currentView === displayedStepRef.current) {
+      return
+    }
+
+    const nextStep = state.currentView
+    const previous = displayedStepRef.current
+    const previousHeight = stepContentStackRef.current?.getBoundingClientRect().height ?? null
+
+    displayedStepRef.current = nextStep
+    setIsStepTransitioning(false)
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setPreviousStep(null)
+      setDisplayedStep(nextStep)
+      setTransitionHeight(previousHeight)
+
+      const reducedMotionFrame = window.requestAnimationFrame(() => {
+        const nextHeight = incomingContentRef.current?.getBoundingClientRect().height ?? null
+
+        if (previousHeight !== null && nextHeight !== null) {
+          setHeightReserve((currentReserve) =>
+            Math.max(0, previousHeight + currentReserve - nextHeight),
+          )
+        }
+
+        setTransitionHeight(null)
+      })
+
+      return () => window.cancelAnimationFrame(reducedMotionFrame)
+    }
+
+    setTransitionHeight(previousHeight)
+    setPreviousStep(previous)
+    setDisplayedStep(nextStep)
+
+    let heightFrame: number | undefined
+    let timeout: number | undefined
+    const initialFrame = window.requestAnimationFrame(() => {
+      const nextHeight = incomingContentRef.current?.getBoundingClientRect().height ?? null
+
+      heightFrame = window.requestAnimationFrame(() => {
+        if (previousHeight !== null && nextHeight !== null) {
+          // A shorter next step must not reduce the document height under a user
+          // who is already at the bottom of the page. Reserve the difference below
+          // the summary instead, where it cannot disturb the step composition.
+          setHeightReserve((currentReserve) =>
+            Math.max(0, previousHeight + currentReserve - nextHeight),
+          )
+        }
+        setTransitionHeight(nextHeight)
+        setIsStepTransitioning(true)
+        timeout = window.setTimeout(() => {
+          setPreviousStep(null)
+          setIsStepTransitioning(false)
+          setTransitionHeight(null)
+        }, 240)
+      })
+    })
+
+    return () => {
+      window.cancelAnimationFrame(initialFrame)
+
+      if (heightFrame !== undefined) {
+        window.cancelAnimationFrame(heightFrame)
+      }
+
+      if (timeout !== undefined) {
+        window.clearTimeout(timeout)
+      }
+    }
+  }, [isSuccess, state.currentView])
 
   const goBack = () => {
     if (isFirstStep || isSuccess) {
@@ -135,6 +309,16 @@ export function Configurator() {
     dispatch({ type: 'toggleEffect', value: toSelectionValue(option) })
   }
 
+  const resetConfigurator = () => {
+    displayedStepRef.current = 'situation'
+    setDisplayedStep('situation')
+    setPreviousStep(null)
+    setIsStepTransitioning(false)
+    setTransitionHeight(null)
+    setHeightReserve(0)
+    dispatch({ type: 'reset' })
+  }
+
   const canProceed = (() => {
     if (isSuccess) {
       return false
@@ -165,7 +349,7 @@ export function Configurator() {
             Курьер уже в пути
           </h2>
           <p>Мы отправили подтверждение и скоро покажем статус доставки.</p>
-          <button type="button" onClick={() => dispatch({ type: 'reset' })}>
+          <button type="button" onClick={resetConfigurator}>
             Собрать новое зелье
           </button>
         </div>
@@ -174,7 +358,13 @@ export function Configurator() {
   }
 
   return (
-    <section id="configurator" className={styles.configurator} tabIndex={-1} aria-labelledby="configurator-title">
+    <section
+      id="configurator"
+      className={styles.configurator}
+      style={{ '--step-height-reserve': `${heightReserve}px` } as CSSProperties}
+      tabIndex={-1}
+      aria-labelledby="configurator-title"
+    >
       <div className={styles.inner}>
         <div className={styles.stepHeader}>
           <h2 id="configurator-title" ref={stepHeadingRef} tabIndex={-1}>
@@ -186,82 +376,45 @@ export function Configurator() {
           </p>
         </div>
 
-        <div key={currentStep.id} className={styles.stepPanel} aria-live="polite">
-          {state.currentView === 'situation' ? (
-            <SelectionGroup legend="Выберите ситуацию">
-              <div className={styles.optionGrid}>
-                {situationOptions.map((option) => (
-                  <SelectionCard
-                    key={option.id}
-                    title={option.title}
-                    description={option.description}
-                    imageSrc={option.imageSrc}
-                    tone={option.tone}
-                    selected={isSelected(state.selections.situation, option)}
-                    onSelect={() => selectSingle('situation', option)}
-                  />
-                ))}
+        <div className={styles.stepPanel} aria-live="polite">
+          <div
+            ref={stepContentStackRef}
+            className={styles.stepContentStack}
+            data-step-content-stack
+            style={transitionHeight === null ? undefined : { height: `${transitionHeight}px` }}
+          >
+            {previousStep ? (
+              <div
+                className={`${styles.stepContent} ${styles.stepContentExiting} ${
+                  isStepTransitioning ? styles.stepContentTransitioning : ''
+                }`}
+                aria-hidden="true"
+                data-step-content="outgoing"
+                inert
+              >
+                <StepContent
+                  view={previousStep}
+                  selections={state.selections}
+                  onSelectSingle={selectSingle}
+                  onToggleEffect={toggleEffect}
+                />
               </div>
-            </SelectionGroup>
-          ) : null}
-
-          {state.currentView === 'effects' ? (
-            <SelectionGroup legend="Выберите дополнительные эффекты">
-              <div className={styles.optionGrid}>
-                {effectOptions.map((option) => {
-                  const selected = state.selections.effects.some((effect) => effect.id === option.id)
-                  const isLimitReached = state.selections.effects.length >= 3
-
-                  return (
-                    <SelectionCard
-                      key={option.id}
-                      title={option.title}
-                      description={option.description}
-                      imageSrc={option.imageSrc}
-                      tone={option.tone}
-                      selected={selected}
-                      disabled={isLimitReached && !selected}
-                      onSelect={() => toggleEffect(option)}
-                    />
-                  )
-                })}
-              </div>
-            </SelectionGroup>
-          ) : null}
-
-          {state.currentView === 'bottle' ? (
-            <SelectionGroup legend="Выберите размер флакона">
-              <div className={`${styles.optionGrid} ${styles.bottleGrid}`}>
-                {bottleOptions.map((option) => (
-                  <SelectionCard
-                    key={option.id}
-                    title={option.title}
-                    description={option.description}
-                    imageSrc={option.imageSrc}
-                    tone={option.tone}
-                    variant="bottle"
-                    selected={isSelected(state.selections.bottle, option)}
-                    onSelect={() => selectSingle('bottle', option)}
-                  />
-                ))}
-              </div>
-            </SelectionGroup>
-          ) : null}
-
-          {state.currentView === 'delivery' ? (
-            <SelectionGroup legend="Выберите способ доставки">
-              <div className={styles.deliveryList}>
-                {deliveryOptions.map((option) => (
-                  <DeliveryCard
-                    key={option.id}
-                    option={option}
-                    selected={isSelected(state.selections.delivery, option)}
-                    onSelect={() => selectSingle('delivery', option)}
-                  />
-                ))}
-              </div>
-            </SelectionGroup>
-          ) : null}
+            ) : null}
+            <div
+              ref={incomingContentRef}
+              className={`${styles.stepContent} ${
+                previousStep ? styles.stepContentEntering : ''
+              } ${isStepTransitioning ? styles.stepContentTransitioning : ''}`}
+              data-step-content="incoming"
+            >
+              <StepContent
+                view={displayedStep}
+                selections={state.selections}
+                onSelectSingle={selectSingle}
+                onToggleEffect={toggleEffect}
+              />
+            </div>
+          </div>
         </div>
 
         <BottomSummary

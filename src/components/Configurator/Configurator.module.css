@@ -1,6 +1,8 @@
 .configurator {
   position: relative;
-  padding: clamp(72px, 6.7vw, 96px) 0 clamp(88px, 7.8vw, 112px);
+  /* Keep a step's measured height transition from becoming a scroll anchor. */
+  overflow-anchor: none;
+  padding: clamp(72px, 6.7vw, 96px) 0 calc(clamp(88px, 7.8vw, 112px) + var(--step-height-reserve, 0px));
 }
 
 .inner {
@@ -65,7 +67,64 @@
 }
 
 .stepPanel {
-  animation: step-enter 220ms ease-out;
+  min-width: 0;
+}
+
+.stepContentStack {
+  display: grid;
+  min-width: 0;
+  overflow: clip;
+  overflow-clip-margin: 8px;
+  transition: height 240ms ease-out;
+}
+
+.stepContent {
+  align-self: start;
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.stepContentTransitioning {
+  will-change: opacity, transform;
+}
+
+.stepContentEntering {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+}
+
+.stepContentEntering.stepContentTransitioning {
+  pointer-events: auto;
+  animation: step-content-enter 240ms ease-out both;
+}
+
+.stepContentExiting.stepContentTransitioning {
+  animation: step-content-exit 240ms ease-out both;
+}
+
+@keyframes step-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes step-content-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 
 .optionGrid {
@@ -335,18 +394,6 @@
   font-weight: 700;
 }
 
-@keyframes step-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @media (max-width: 1023px) {
   .inner {
     width: min(var(--configurator-max-width), calc(100% - (var(--space-tablet) * 2)));
@@ -568,8 +615,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .stepPanel {
+  .stepContentTransitioning {
+    transition: none;
     animation: none;
+  }
+
+  .stepContentEntering,
+  .stepContentExiting.stepContentTransitioning {
+    opacity: 1;
+    transform: none;
   }
 
   .deliveryCard {

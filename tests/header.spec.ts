@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
 const viewports = [
   { name: 'mobile', width: 390, height: 844 },
@@ -8,6 +8,18 @@ const viewports = [
   { name: 'desktop-900', width: 1440, height: 900 },
   { name: 'desktop', width: 1440, height: 1000 },
 ]
+
+const clickWithoutViewportShift = async (page: Page, locator: Locator) => {
+  await locator.scrollIntoViewIfNeeded()
+  const beforeScrollY = await page.evaluate(() => window.scrollY)
+
+  await locator.click()
+
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(beforeScrollY)
+}
+
+const optionButton = (page: Page, label: string) =>
+  page.getByRole('button', { name: new RegExp(`^${label}`) })
 
 for (const viewport of viewports) {
   test(`header fits the ${viewport.name} viewport`, async ({ page }, testInfo) => {
@@ -83,6 +95,125 @@ test('completed configurator steps can be revisited with the keyboard', async ({
   await page.keyboard.press('Enter')
 
   await expect(page.getByRole('heading', { name: 'Что сегодня пошло не по плану?' })).toBeFocused()
+})
+
+test('configurator selections and step navigation keep the viewport stable', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+  for (const label of [
+    'Потерялась вещь',
+    'Пропало вдохновение',
+    'Неловкая пауза',
+    'Успокоить дракона',
+    'Ничего не растёт',
+    'Другая странная ситуация',
+  ]) {
+    await clickWithoutViewportShift(page, optionButton(page, label))
+  }
+
+  await clickWithoutViewportShift(page, page.getByRole('button', { name: 'Показать зелья' }))
+  await expect(page.getByRole('heading', { name: 'Какие доп. эффекты нужны?' })).toBeFocused()
+
+  await clickWithoutViewportShift(page, optionButton(page, 'Быстрый эффект'))
+  await clickWithoutViewportShift(page, optionButton(page, 'Долгое действие'))
+  await clickWithoutViewportShift(page, optionButton(page, 'Без побочек'))
+  await clickWithoutViewportShift(page, optionButton(page, 'Быстрый эффект'))
+  await clickWithoutViewportShift(page, optionButton(page, 'Лёгкое свечение'))
+  await clickWithoutViewportShift(page, optionButton(page, 'Долгое действие'))
+  await clickWithoutViewportShift(page, optionButton(page, 'Тихое применение'))
+  await clickWithoutViewportShift(page, optionButton(page, 'Без побочек'))
+  await clickWithoutViewportShift(page, optionButton(page, 'Приятный аромат'))
+
+  await clickWithoutViewportShift(page, page.getByRole('button', { name: 'Выбрать флакон' }))
+
+  for (const label of ['S — Маленький', 'M — Средний', 'L — Большой']) {
+    await clickWithoutViewportShift(page, optionButton(page, label))
+  }
+
+  await clickWithoutViewportShift(page, page.getByRole('button', { name: 'Перейти к доставке' }))
+
+  for (const label of ['Обычная', 'Экспресс', 'Телепорт']) {
+    await clickWithoutViewportShift(page, optionButton(page, label))
+  }
+
+  await clickWithoutViewportShift(page, page.getByRole('button', { name: 'Назад' }))
+  await expect(page.getByRole('heading', { name: 'Какой флакон нужен?' })).toBeFocused()
+  await clickWithoutViewportShift(page, page.getByRole('button', { name: 'Перейти к доставке' }))
+})
+
+test('reduced-motion step changes swap without an outgoing panel', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+  await clickWithoutViewportShift(page, optionButton(page, 'Потерялась вещь'))
+  await clickWithoutViewportShift(page, page.getByRole('button', { name: 'Показать зелья' }))
+
+  await expect(page.getByRole('heading', { name: 'Какие доп. эффекты нужны?' })).toBeFocused()
+  await expect(page.locator('[data-step-content="outgoing"]')).toHaveCount(0)
+  await expect(page.locator('[data-step-content="incoming"]')).toHaveCSS('transform', 'none')
+})
+
+test('step changes cross-fade while the content layers overlap', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+  await clickWithoutViewportShift(page, optionButton(page, 'Потерялась вещь'))
+  await clickWithoutViewportShift(page, page.getByRole('button', { name: 'Показать зелья' }))
+
+  const outgoing = page.locator('[data-step-content="outgoing"]')
+  const incoming = page.locator('[data-step-content="incoming"]')
+  await expect(outgoing).toHaveCount(1)
+  await page.waitForTimeout(100)
+
+  const [outgoingOpacity, incomingOpacity] = await Promise.all([
+    outgoing.evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity)),
+    incoming.evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity)),
+  ])
+
+  expect(outgoingOpacity).toBeGreaterThan(0)
+  expect(outgoingOpacity).toBeLessThan(1)
+  expect(incomingOpacity).toBeGreaterThan(0)
+  expect(incomingOpacity).toBeLessThan(1)
+})
+
+test('step content height changes smoothly when the incoming step is shorter', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+  await clickWithoutViewportShift(page, optionButton(page, 'Потерялась вещь'))
+  await clickWithoutViewportShift(page, page.getByRole('button', { name: 'Показать зелья' }))
+  await page.waitForTimeout(280)
+  await clickWithoutViewportShift(page, optionButton(page, 'Быстрый эффект'))
+
+  const stack = page.locator('[data-step-content-stack]')
+  const beforeHeight = await stack.evaluate((element) => element.getBoundingClientRect().height)
+
+  await clickWithoutViewportShift(page, page.getByRole('button', { name: 'Выбрать флакон' }))
+  await page.waitForTimeout(120)
+  const intermediateHeight = await stack.evaluate((element) => element.getBoundingClientRect().height)
+  await page.waitForTimeout(180)
+  const afterHeight = await stack.evaluate((element) => element.getBoundingClientRect().height)
+
+  expect(afterHeight).toBeLessThan(beforeHeight)
+  expect(intermediateHeight).toBeLessThan(beforeHeight)
+  expect(intermediateHeight).toBeGreaterThan(afterHeight)
+})
+
+test('keyboard card selection retains the viewport position', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+  const option = optionButton(page, 'Потерялась вещь')
+  await option.scrollIntoViewIfNeeded()
+  await option.focus()
+  const beforeScrollY = await page.evaluate(() => window.scrollY)
+
+  await page.keyboard.press('Enter')
+
+  await expect(option).toHaveAttribute('aria-pressed', 'true')
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(beforeScrollY)
 })
 
 test('configurator maps selections into the summary and completes delivery', async ({ page }) => {
