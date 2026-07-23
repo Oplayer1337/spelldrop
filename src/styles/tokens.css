@@ -1,0 +1,45 @@
+:root {
+  color-scheme: dark;
+
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+
+  --color-page-top: #08091f;
+  --color-page-middle: #130d28;
+  --color-page-bottom: #2a1618;
+  --color-text: #f7f5fa;
+  --color-text-muted: #b4aec2;
+  --color-surface: rgba(19, 16, 39, 0.86);
+  --color-surface-strong: rgba(25, 20, 51, 0.96);
+  --color-border: rgba(191, 178, 230, 0.16);
+  --color-border-strong: rgba(161, 96, 255, 0.56);
+  --color-accent: #8745ff;
+  --color-accent-hover: #9559ff;
+  --color-accent-soft: #b18aff;
+  --color-focus: #d5f74a;
+  --color-selected: #d5f74a;
+  --color-card-green: rgba(20, 59, 38, 0.92);
+  --color-card-violet: rgba(47, 28, 89, 0.92);
+  --color-card-blue: rgba(21, 40, 89, 0.92);
+  --color-card-orange: rgba(91, 31, 26, 0.92);
+  --color-card-olive: rgba(61, 57, 25, 0.92);
+  --color-card-cyan: rgba(13, 65, 75, 0.92);
+  --color-card-pink: rgba(83, 26, 65, 0.92);
+
+  --radius-card: 24px;
+  --radius-control: 14px;
+  --radius-pill: 999px;
+  --shadow-header-control: 0 10px 30px rgba(4, 3, 19, 0.2);
+  --shadow-surface: 0 18px 38px rgba(4, 3, 19, 0.18);
+  --shadow-accent: 0 14px 30px rgba(71, 26, 166, 0.28);
+  --shadow-selected: 0 0 0 1px rgba(213, 247, 74, 0.24), 0 14px 30px rgba(109, 132, 20, 0.12);
+
+  --content-max-width: 1280px;
+  --configurator-max-width: 980px;
+  --space-desktop: 48px;
+  --space-tablet: 32px;
+  --space-mobile: 20px;
+  --header-height: 96px;
+
+  --transition-fast: 160ms ease;
+}

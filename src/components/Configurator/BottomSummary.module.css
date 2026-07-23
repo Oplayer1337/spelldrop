@@ -1,0 +1,239 @@
+.summary {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  min-height: 118px;
+  margin-top: 28px;
+  padding: 20px 24px 20px 156px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-surface);
+}
+
+.mascot {
+  position: absolute;
+  bottom: 0;
+  left: -68px;
+  width: 154px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.summary[data-mascot-position='right'] {
+  padding-right: 156px;
+  padding-left: 24px;
+}
+
+.summary[data-mascot-position='right'] .mascot {
+  right: -48px;
+  bottom: -1px;
+  left: auto;
+  width: 146px;
+}
+
+.details {
+  display: grid;
+  align-content: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.eyebrow {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-strong);
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.chips img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.backButton,
+.nextButton {
+  min-height: 50px;
+  border-radius: var(--radius-control);
+  font-size: 15px;
+  font-weight: 700;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.backButton {
+  padding: 12px 18px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+.backButton:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.nextButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  min-width: 214px;
+  padding: 12px 20px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-accent);
+  box-shadow: var(--shadow-accent);
+  color: var(--color-text);
+}
+
+.nextButton:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  transform: translateY(-2px);
+}
+
+.backButton:disabled,
+.nextButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  transform: none;
+}
+
+.nextSparkle {
+  width: 18px;
+  height: 18px;
+  background: var(--color-text);
+  clip-path: polygon(50% 0, 61% 38%, 100% 50%, 61% 62%, 50% 100%, 39% 62%, 0 50%, 39% 38%);
+}
+
+@media (max-width: 767px) {
+  .summary {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 22px;
+  }
+
+  .mascot {
+    display: none;
+  }
+
+  .summary[data-mascot-position='right'] {
+    padding-right: 22px;
+    padding-left: 22px;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .nextButton {
+    min-width: 0;
+  }
+}
+
+@media (min-width: 768px) and (max-height: 950px) {
+  .summary {
+    gap: 18px;
+    min-height: 108px;
+    margin-top: 20px;
+    padding: 16px 22px 16px 146px;
+  }
+
+  .mascot {
+    left: -62px;
+    width: 144px;
+  }
+
+  .summary[data-mascot-position='right'] {
+    padding-right: 146px;
+    padding-left: 22px;
+  }
+
+  .summary[data-mascot-position='right'] .mascot {
+    right: -44px;
+    width: 136px;
+  }
+
+  .details {
+    gap: 7px;
+  }
+
+  .chips li {
+    padding: 6px 10px;
+  }
+}
+
+@media (min-width: 768px) and (max-height: 820px) {
+  .summary {
+    min-height: 96px;
+    margin-top: 16px;
+    padding: 14px 18px 14px 136px;
+  }
+
+  .mascot {
+    left: -58px;
+    width: 134px;
+  }
+
+  .summary[data-mascot-position='right'] {
+    padding-right: 136px;
+    padding-left: 18px;
+  }
+
+  .summary[data-mascot-position='right'] .mascot {
+    right: -40px;
+    width: 126px;
+  }
+
+  .backButton,
+  .nextButton {
+    min-height: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backButton,
+  .nextButton {
+    transition: none;
+  }
+}
