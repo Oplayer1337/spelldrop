@@ -2,9 +2,8 @@ import { useState } from 'react'
 import styles from './Header.module.css'
 
 const navigationItems = [
-  { href: '#catalog', label: 'Каталог' },
   { href: '#how-it-works', label: 'Как это работает' },
-  { href: '#delivery', label: 'Доставка' },
+  { href: '#delivery-methods', label: 'Работа доставки' },
 ]
 
 export function Header() {
@@ -44,7 +43,7 @@ export function Header() {
           ))}
         </nav>
 
-        <a className={styles.orderLink} href="#delivery" aria-label="Перейти к доставке">
+        <a className={styles.orderLink} href="#configurator" aria-label="Перейти к конфигуратору">
           <span className={styles.cubeIcon} aria-hidden="true" />
         </a>
       </div>

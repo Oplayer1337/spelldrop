@@ -38,6 +38,7 @@ const waitForViewportToSettle = (page: Page) =>
 
 const clickWithoutViewportShift = async (page: Page, locator: Locator) => {
   await locator.scrollIntoViewIfNeeded()
+  await page.waitForTimeout(700)
   await waitForViewportToSettle(page)
   const beforeScrollY = await page.evaluate(() => window.scrollY)
 
@@ -60,7 +61,9 @@ for (const viewport of viewports) {
     await expect(page.getByRole('heading', { name: 'Доставка заклинаний' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Подобрать заклинание' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Что сегодня пошло не по плану?' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Перейти к доставке' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Перейти к конфигуратору' })).toBeVisible()
+    await expect(page.getByLabel('Статус текущего заказа')).toHaveCount(0)
+    await expect(page.getByRole('contentinfo')).toBeVisible()
     await page.getByRole('button', { name: /^Потерялась вещь/ }).click()
     await expect(page.getByRole('button', { name: /^Потерялась вещь/ })).toHaveAttribute(
       'aria-pressed',
@@ -89,7 +92,39 @@ test('mobile navigation can be opened with the keyboard', async ({ page }) => {
     'aria-expanded',
     'true',
   )
-  await expect(page.getByRole('navigation')).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Основная навигация' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Основная навигация' })).toContainText(
+    'Как это работает',
+  )
+  await expect(page.getByRole('navigation', { name: 'Основная навигация' })).toContainText(
+    'Работа доставки',
+  )
+  await expect(page.getByRole('navigation', { name: 'Основная навигация' })).not.toContainText(
+    'Конфигуратор',
+  )
+})
+
+test('main navigation and footer links point to real sections', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+  const links = [
+    { href: '#how-it-works', label: 'Как это работает' },
+    { href: '#delivery-methods', label: 'Работа доставки' },
+  ]
+
+  for (const link of links) {
+    await expect(
+      page.getByRole('navigation', { name: 'Основная навигация' }).getByRole('link', { name: link.label }),
+    ).toHaveAttribute('href', link.href)
+    await expect(page.locator(link.href)).toHaveCount(1)
+  }
+
+  await expect(page.getByRole('contentinfo').getByText('Служба доставки заклинаний')).toBeVisible()
+  await expect(page.getByRole('contentinfo').getByRole('link', { name: 'Подобрать зелье' })).toHaveAttribute(
+    'href',
+    '#configurator',
+  )
 })
 
 test('hero CTA focuses the configurator target', async ({ page }) => {
@@ -113,7 +148,7 @@ test('brand story fits the supported viewports and is reachable from navigation'
     await page.goto('/', { waitUntil: 'domcontentloaded' })
 
     const story = page.locator('#how-it-works')
-    await expect(page.locator('a[href="#how-it-works"]')).toHaveCount(1)
+    await expect(page.getByRole('banner').locator('a[href="#how-it-works"]')).toHaveCount(1)
     await expect(
       story.getByRole('heading', { name: 'Вы выбираете зелье — остальное делают ведьмочки' }),
     ).toBeVisible()

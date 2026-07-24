@@ -7,10 +7,4 @@ export const heroContent: HeroContent = {
   },
   description: 'Для потерянных ключей, неловких пауз и других срочных случаев.',
   ctaLabel: 'Подобрать заклинание',
-  status: {
-    orderNumber: 'Заказ №257',
-    etaPrefix: 'Через ',
-    etaValue: '12',
-    etaSuffix: ' минут',
-  },
 }

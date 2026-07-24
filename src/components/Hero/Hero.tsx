@@ -56,18 +56,6 @@ export function Hero() {
           />
         </div>
 
-        <aside className={styles.orderStatus} aria-label="Статус текущего заказа">
-          <span className={styles.statusMark} aria-hidden="true" />
-          <span className={styles.statusCopy}>
-            <strong>{heroContent.status.orderNumber}</strong>
-            <span>
-              {heroContent.status.etaPrefix}
-              <em>{heroContent.status.etaValue}</em>
-              {heroContent.status.etaSuffix}
-            </span>
-          </span>
-          <span className={styles.statusReady} aria-label="Заказ в работе" />
-        </aside>
       </div>
     </section>
   )
