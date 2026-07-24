@@ -1,6 +1,7 @@
 import { Configurator } from './components/Configurator/Configurator'
 import { Header } from './components/Header/Header'
 import { Hero } from './components/Hero/Hero'
+import { HowItWorks } from './components/HowItWorks/HowItWorks'
 
 function App() {
   return (
@@ -8,6 +9,7 @@ function App() {
       <Header />
       <main id="main-content" tabIndex={-1}>
         <Hero />
+        <HowItWorks />
         <Configurator />
       </main>
     </div>

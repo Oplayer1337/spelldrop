@@ -97,20 +97,20 @@ export const effectOptions: readonly ConfiguratorOption[] = [
     tone: 'green',
   },
   {
-    id: 'long-lasting',
-    label: 'Долгое действие',
-    title: 'Долгое действие',
-    description: 'Эффект держится дольше',
-    imageSrc: configuratorAssets.effects.longLasting,
-    tone: 'violet',
-  },
-  {
     id: 'safe',
     label: 'Без побочек',
     title: 'Без побочек',
     description: 'Мягкое действие без вреда',
     imageSrc: configuratorAssets.effects.safe,
     tone: 'blue',
+  },
+  {
+    id: 'long-lasting',
+    label: 'Долгое действие',
+    title: 'Долгое действие',
+    description: 'Эффект держится дольше',
+    imageSrc: configuratorAssets.effects.longLasting,
+    tone: 'violet',
   },
   {
     id: 'glow',
@@ -121,20 +121,20 @@ export const effectOptions: readonly ConfiguratorOption[] = [
     tone: 'orange',
   },
   {
-    id: 'silent',
-    label: 'Тихое применение',
-    title: 'Тихое применение',
-    description: 'Без шума и лишнего внимания',
-    imageSrc: configuratorAssets.effects.silent,
-    tone: 'cyan',
-  },
-  {
     id: 'aroma',
     label: 'Приятный аромат',
     title: 'Приятный аромат',
     description: 'Лёгкий и приятный запах',
     imageSrc: configuratorAssets.effects.aroma,
     tone: 'pink',
+  },
+  {
+    id: 'silent',
+    label: 'Тихое применение',
+    title: 'Тихое применение',
+    description: 'Без шума и лишнего внимания',
+    imageSrc: configuratorAssets.effects.silent,
+    tone: 'cyan',
   },
 ]
 

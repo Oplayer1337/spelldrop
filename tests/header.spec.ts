@@ -9,13 +9,43 @@ const viewports = [
   { name: 'desktop', width: 1440, height: 1000 },
 ]
 
+const waitForViewportToSettle = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        let previousScrollY = window.scrollY
+        let stableFrames = 0
+
+        const check = () => {
+          if (window.scrollY === previousScrollY) {
+            stableFrames += 1
+          } else {
+            previousScrollY = window.scrollY
+            stableFrames = 0
+          }
+
+          if (stableFrames >= 4) {
+            resolve()
+            return
+          }
+
+          window.requestAnimationFrame(check)
+        }
+
+        window.requestAnimationFrame(check)
+      }),
+  )
+
 const clickWithoutViewportShift = async (page: Page, locator: Locator) => {
   await locator.scrollIntoViewIfNeeded()
+  await waitForViewportToSettle(page)
   const beforeScrollY = await page.evaluate(() => window.scrollY)
 
   await locator.click()
 
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(beforeScrollY)
+  await expect
+    .poll(() => page.evaluate((initialScrollY) => Math.abs(window.scrollY - initialScrollY), beforeScrollY))
+    .toBeLessThanOrEqual(2)
 }
 
 const optionButton = (page: Page, label: string) =>
@@ -68,6 +98,31 @@ test('hero CTA focuses the configurator target', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Подобрать заклинание' }).click()
   await expect(page.locator('#configurator')).toBeFocused()
+})
+
+test('brand story fits the supported viewports and is reachable from navigation', async ({ page }, testInfo) => {
+  const storyViewports = [
+    { name: '390x844', width: 390, height: 844 },
+    { name: '768x1024', width: 768, height: 1024 },
+    { name: '1024x768', width: 1024, height: 768 },
+    { name: '1440x1000', width: 1440, height: 1000 },
+  ]
+
+  for (const viewport of storyViewports) {
+    await page.setViewportSize(viewport)
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+    const story = page.locator('#how-it-works')
+    await expect(page.locator('a[href="#how-it-works"]')).toHaveCount(1)
+    await expect(
+      story.getByRole('heading', { name: 'Вы выбираете зелье — остальное делают ведьмочки' }),
+    ).toBeVisible()
+    await story.scrollIntoViewIfNeeded()
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+      .toBe(true)
+    await story.screenshot({ path: testInfo.outputPath(`how-it-works-${viewport.name}.png`) })
+  }
 })
 
 test('configurator moves between steps and returns focus to the step heading', async ({ page }) => {

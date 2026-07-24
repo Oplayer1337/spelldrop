@@ -14,6 +14,8 @@ describe('App', () => {
     expect(markup).toContain('Доставка')
     expect(markup).toContain('заклинаний')
     expect(markup).toContain('Подобрать заклинание')
+    expect(markup).toContain('id="how-it-works"')
+    expect(markup).toContain('Вы выбираете зелье — остальное делают ведьмочки')
     expect(markup).toContain('id="configurator"')
     expect(markup).toContain('Что сегодня пошло не по плану?')
     expect(markup).toContain('Шаг 1 из 4')
