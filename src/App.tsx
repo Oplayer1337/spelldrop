@@ -1,4 +1,5 @@
 import { Configurator } from './components/Configurator/Configurator'
+import { DeliveryMethods } from './components/DeliveryMethods/DeliveryMethods'
 import { Footer } from './components/Footer/Footer'
 import { Header } from './components/Header/Header'
 import { Hero } from './components/Hero/Hero'
@@ -11,9 +12,8 @@ function App() {
       <main id="main-content" tabIndex={-1}>
         <Hero />
         <HowItWorks />
-        <section id="delivery-methods" aria-label="Работа доставки">
-          <Configurator />
-        </section>
+        <DeliveryMethods />
+        <Configurator />
       </main>
       <Footer />
     </div>

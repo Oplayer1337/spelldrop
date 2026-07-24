@@ -160,6 +160,45 @@ test('brand story fits the supported viewports and is reachable from navigation'
   }
 })
 
+test('delivery methods load their assets, respond to navigation, and fit supported viewports', async ({ page }, testInfo) => {
+  const deliveryViewports = [
+    { name: '390x844', width: 390, height: 844 },
+    { name: '768x1024', width: 768, height: 1024 },
+    { name: '1024x768', width: 1024, height: 768 },
+    { name: '1440x900', width: 1440, height: 900 },
+  ]
+
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+  await page.getByRole('navigation', { name: 'Основная навигация' }).getByRole('link', {
+    name: 'Работа доставки',
+  }).click()
+  await page.waitForTimeout(700)
+  await expect(page.locator('#delivery-methods')).toBeInViewport()
+
+  for (const viewport of deliveryViewports) {
+    await page.setViewportSize(viewport)
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+    const deliveryMethods = page.locator('#delivery-methods')
+    await expect(deliveryMethods.getByRole('heading', { name: 'Любая магия найдёт путь' })).toBeVisible()
+    await expect(deliveryMethods.locator('article')).toHaveCount(3)
+    await expect(
+      deliveryMethods.getByText('Это может быть стол, полка, свободный стул или пространство прямо за вашей спиной'),
+    ).toBeVisible()
+    expect(
+      await deliveryMethods.locator('img').evaluateAll((images) =>
+        images.every((image) => image.complete && image.naturalWidth > 0),
+      ),
+    ).toBe(true)
+    await deliveryMethods.scrollIntoViewIfNeeded()
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+      .toBe(true)
+    await deliveryMethods.screenshot({ path: testInfo.outputPath(`delivery-methods-${viewport.name}.png`) })
+  }
+})
+
 test('configurator moves between steps and returns focus to the step heading', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.goto('/', { waitUntil: 'domcontentloaded' })
