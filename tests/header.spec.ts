@@ -125,11 +125,27 @@ test('main navigation and footer links point to real sections', async ({ page })
 
   await expect(page.getByRole('contentinfo').getByText('Служба доставки заклинаний')).toBeVisible()
   const footerNavigation = page.getByRole('navigation', { name: 'Навигация в подвале' })
-  await expect(footerNavigation.getByRole('link')).toHaveCount(1)
+  await expect(footerNavigation.getByRole('link')).toHaveCount(3)
   await expect(footerNavigation.getByRole('link', { name: 'AI Worklog' })).toHaveAttribute(
     'href',
     '/process',
   )
+  await expect(footerNavigation.getByRole('link', { name: 'Github' })).toHaveAttribute(
+    'href',
+    'https://github.com/Oplayer1337/spelldrop',
+  )
+  await expect(footerNavigation.getByRole('link', { name: 'Telegram' })).toHaveAttribute(
+    'href',
+    'https://t.me/oplayer1337',
+  )
+
+  for (const externalLink of ['Github', 'Telegram']) {
+    await expect(footerNavigation.getByRole('link', { name: externalLink })).toHaveAttribute('target', '_blank')
+    await expect(footerNavigation.getByRole('link', { name: externalLink })).toHaveAttribute(
+      'rel',
+      'noreferrer noopener',
+    )
+  }
 })
 
 test('hero CTA focuses the configurator target', async ({ page }) => {
@@ -232,10 +248,6 @@ test('AI Worklog opens directly, survives refresh, and fits supported viewports'
   await expect(page.getByRole('heading', { name: 'Как создавался SPELLDROP' })).toBeVisible()
   await page.reload({ waitUntil: 'domcontentloaded' })
   await expect(page.getByRole('heading', { name: 'Как создавался SPELLDROP' })).toBeVisible()
-  await expect(page.getByRole('main').getByRole('link', { name: 'Открыть SPELLDROP' })).toHaveAttribute(
-    'href',
-    '/',
-  )
   await expect(
     page.getByRole('navigation', { name: 'Основная навигация' }).getByRole('link', {
       name: 'Как это работает',
@@ -254,10 +266,8 @@ test('AI Worklog opens directly, survives refresh, and fits supported viewports'
       ).toHaveCount(0)
       await page.getByRole('button', { name: 'Закрыть меню' }).click()
     }
-    await expect(process.getByText('Материалы — за золотые, магия — за хорошую карму.')).toBeVisible()
-    await expect(
-      process.getByText('Обернитесь — зелье уже за вашей спиной. Если там нашлось достаточно места.'),
-    ).toBeVisible()
+    await expect(process.getByText('Это настоящая магия! Даже подтверждать ничего не нужно')).toBeVisible()
+    await expect(process.getByText('На самом деле фиксов было больше, но они были совсем мелкие')).toBeVisible()
     expect(
       await process.locator('img').evaluateAll((images) =>
         images.every((image) => image.complete && image.naturalWidth > 0),
@@ -268,6 +278,66 @@ test('AI Worklog opens directly, survives refresh, and fits supported viewports'
       .toBe(true)
     await page.screenshot({ path: testInfo.outputPath(`process-${viewport.name}.png`), fullPage: true })
   }
+})
+
+test('route hashes scroll to main-page sections after navigation and refresh', async ({ page }) => {
+  const destinations = [
+    { label: 'Как это работает', href: '/#how-it-works', target: '#how-it-works' },
+    { label: 'Работа доставки', href: '/#delivery-methods', target: '#delivery-methods' },
+    { label: 'Перейти к конфигуратору', href: '/#configurator', target: '#configurator' },
+  ]
+
+  await page.setViewportSize({ width: 1440, height: 1000 })
+
+  for (const destination of destinations) {
+    await page.goto('/process', { waitUntil: 'domcontentloaded' })
+    await page.getByRole('link', { name: destination.label }).click()
+    await expect(page).toHaveURL(new RegExp(`${destination.href.replace('/', '').replace('#', '\\#')}$`))
+    await waitForViewportToSettle(page)
+    await expect(page.locator(destination.target)).toBeInViewport()
+    expect(await page.locator(destination.target).evaluate((element) => element.getBoundingClientRect().top)).toBeGreaterThan(
+      0,
+    )
+  }
+
+  await page.goto('/#delivery-methods', { waitUntil: 'domcontentloaded' })
+  await waitForViewportToSettle(page)
+  await expect(page.locator('#delivery-methods')).toBeInViewport()
+
+  await page.goto('/process', { waitUntil: 'domcontentloaded' })
+  await page.getByRole('link', { name: 'Работа доставки' }).click()
+  await expect(page.locator('#delivery-methods')).toBeInViewport()
+  await page.goBack({ waitUntil: 'domcontentloaded' })
+  await expect(page.getByRole('heading', { name: 'Как создавался SPELLDROP' })).toBeVisible()
+  await page.goForward({ waitUntil: 'domcontentloaded' })
+  await waitForViewportToSettle(page)
+  await expect(page.locator('#delivery-methods')).toBeInViewport()
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/process', { waitUntil: 'domcontentloaded' })
+  await page.getByRole('button', { name: 'Открыть меню' }).click()
+  await page.getByRole('navigation', { name: 'Основная навигация' }).getByRole('link', { name: 'Как это работает' }).click()
+  await waitForViewportToSettle(page)
+  await expect(page.locator('#how-it-works')).toBeInViewport()
+})
+
+test('landing-section reveals run once and respect reduced motion', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+  for (const sectionId of ['how-it-works', 'delivery-methods']) {
+    const reveal = page.locator(`#${sectionId} > div[data-reveal]`)
+    await page.locator(`#${sectionId}`).scrollIntoViewIfNeeded()
+    await expect(reveal).toHaveAttribute('data-reveal', 'revealed')
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'auto' }))
+    await expect(reveal).toHaveAttribute('data-reveal', 'revealed')
+  }
+
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+  await expect(page.locator('#how-it-works > div[data-reveal]')).toHaveAttribute('data-reveal', 'revealed')
+  await expect(page.locator('#delivery-methods > div[data-reveal]')).toHaveCSS('opacity', '1')
+  await expect(page.locator('#delivery-methods > div[data-reveal]')).toHaveCSS('transform', 'none')
 })
 
 test('configurator moves between steps and returns focus to the step heading', async ({ page }) => {

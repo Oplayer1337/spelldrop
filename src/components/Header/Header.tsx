@@ -49,8 +49,8 @@ export function Header({ isProcessPage = false }: HeaderProps) {
 
         <a
           className={styles.orderLink}
-          href={isProcessPage ? '/' : '#configurator'}
-          aria-label={isProcessPage ? 'Открыть SPELLDROP' : 'Перейти к конфигуратору'}
+          href={isProcessPage ? '/#configurator' : '#configurator'}
+          aria-label="Перейти к конфигуратору"
         >
           <span className={styles.cubeIcon} aria-hidden="true" />
         </a>

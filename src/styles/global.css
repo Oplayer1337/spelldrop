@@ -51,6 +51,12 @@ a {
     linear-gradient(160deg, var(--color-page-top) 0%, var(--color-page-middle) 56%, var(--color-page-bottom) 100%);
 }
 
+#how-it-works,
+#delivery-methods,
+#configurator {
+  scroll-margin-top: calc(var(--header-height) + 16px);
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

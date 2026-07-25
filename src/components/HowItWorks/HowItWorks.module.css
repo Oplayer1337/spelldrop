@@ -8,6 +8,21 @@
   margin: 0 auto;
 }
 
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 500ms ease-out,
+    transform 500ms ease-out;
+  will-change: opacity, transform;
+}
+
+.revealed {
+  opacity: 1;
+  transform: translateY(0);
+  will-change: auto;
+}
+
 .intro {
   max-width: 740px;
   margin: 0 auto 24px;
@@ -347,6 +362,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
   .visual img {
     transition: none;
   }

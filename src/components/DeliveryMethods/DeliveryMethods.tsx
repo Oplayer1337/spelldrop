@@ -1,10 +1,16 @@
 import { deliveryMethods } from '../../data/deliveryMethods'
+import { useFirstViewportReveal } from '../../hooks/useFirstViewportReveal'
 import styles from './DeliveryMethods.module.css'
 
 export function DeliveryMethods() {
+  const { ref, isRevealed } = useFirstViewportReveal<HTMLElement>()
+
   return (
-    <section id="delivery-methods" className={styles.section} aria-labelledby="delivery-methods-title">
-      <div className={styles.inner}>
+    <section ref={ref} id="delivery-methods" className={styles.section} aria-labelledby="delivery-methods-title">
+      <div
+        className={`${styles.inner} ${styles.reveal} ${isRevealed ? styles.revealed : ''}`}
+        data-reveal={isRevealed ? 'revealed' : 'pending'}
+      >
         <div className={styles.intro}>
           <p className={styles.label}>Работа доставки</p>
           <h2 id="delivery-methods-title">Любая магия найдёт путь</h2>

@@ -1,4 +1,5 @@
 import { configuratorAssets } from '../../data/assets'
+import { useFirstViewportReveal } from '../../hooks/useFirstViewportReveal'
 import styles from './HowItWorks.module.css'
 
 const principles = [
@@ -52,9 +53,14 @@ function StoryVisual({ visual }: { visual: (typeof principles)[number]['visual']
 }
 
 export function HowItWorks() {
+  const { ref, isRevealed } = useFirstViewportReveal<HTMLElement>()
+
   return (
-    <section id="how-it-works" className={styles.section} aria-labelledby="how-it-works-title">
-      <div className={styles.inner}>
+    <section ref={ref} id="how-it-works" className={styles.section} aria-labelledby="how-it-works-title">
+      <div
+        className={`${styles.inner} ${styles.reveal} ${isRevealed ? styles.revealed : ''}`}
+        data-reveal={isRevealed ? 'revealed' : 'pending'}
+      >
         <div className={styles.intro}>
           <p className={styles.label}>Как это работает</p>
           <h2 id="how-it-works-title">Вы выбираете зелье — остальное делают ведьмочки</h2>

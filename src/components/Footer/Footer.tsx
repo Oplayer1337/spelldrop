@@ -5,9 +5,11 @@ interface FooterProps {
 }
 
 export function Footer({ isProcessPage = false }: FooterProps) {
-  const navigationItems = [{ href: '/process', label: 'AI Worklog' },
-                          { href: 'https://t.me/oplayer1337', label: 'Telegram', target: '__blank'},
-                          {href: 'https://github.com/Oplayer1337/spelldrop', label: 'Github', target: '__blank'}]
+  const navigationItems = [
+    { href: '/process', label: 'AI Worklog' },
+    { href: 'https://t.me/oplayer1337', label: 'Telegram', isExternal: true },
+    { href: 'https://github.com/Oplayer1337/spelldrop', label: 'Github', isExternal: true },
+  ]
 
   return (
     <footer className={styles.footer}>
@@ -19,7 +21,12 @@ export function Footer({ isProcessPage = false }: FooterProps) {
           </div>
           <nav className={styles.navigation} aria-label="Навигация в подвале">
             {navigationItems.map((item) => (
-              <a key={item.href} href={item.href} target={item.target}>
+              <a
+                key={item.href}
+                href={item.href}
+                target={item.isExternal ? '_blank' : undefined}
+                rel={item.isExternal ? 'noreferrer noopener' : undefined}
+              >
                 {item.label}
               </a>
             ))}

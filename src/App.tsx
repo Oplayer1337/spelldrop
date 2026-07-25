@@ -5,8 +5,11 @@ import { Header } from './components/Header/Header'
 import { Hero } from './components/Hero/Hero'
 import { HowItWorks } from './components/HowItWorks/HowItWorks'
 import { ProcessPage } from './components/ProcessPage/ProcessPage'
+import { useRouteHashScroll } from './hooks/useRouteHashScroll'
 
 function App() {
+  useRouteHashScroll()
+
   const currentPath = typeof window === 'undefined' ? '/' : window.location.pathname
 
   if (currentPath.replace(/\/+$/, '') === '/process') {
