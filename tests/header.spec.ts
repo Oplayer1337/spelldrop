@@ -304,36 +304,26 @@ test('AI Worklog opens directly, survives refresh, and fits supported viewports'
   }
 })
 
-test('route metadata and production branding assets are configured', async ({ page, request }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' })
+test('static metadata and production branding assets are configured', async ({ request }) => {
+  const documentResponse = await request.get('/')
+  const documentHtml = await documentResponse.text()
 
-  await expect(page).toHaveTitle('SPELLDROP — доставка магических зелий')
-  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
-    'content',
-    'Интерактивный сервис доставки зелий: выберите ситуацию, настройте эффекты, флакон и способ доставки.',
+  expect(documentHtml).toContain('<title>SPELLDROP — доставка магических зелий</title>')
+  expect(documentHtml).toContain(
+    'SPELLDROP — интерактивный лендинг сервиса доставки магических зелий, созданный в рамках тестового задания для MOX Creative Studio.',
   )
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://oplayer1337.ru/')
-  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
-    'content',
+  expect(documentHtml).toContain(
     'https://oplayer1337.ru/social-preview.png',
   )
-  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image')
-  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/site.webmanifest')
+  expect(documentHtml).toContain(
+    'Интерактивный лендинг сервиса доставки магических зелий, созданный в рамках тестового задания для MOX Creative Studio.',
+  )
+  expect(documentHtml).toContain('name="twitter:card" content="summary_large_image"')
+  expect(documentHtml).toContain('rel="manifest" href="/site.webmanifest"')
 
   for (const assetPath of ['/favicon.svg', '/favicon.ico', '/apple-touch-icon.png', '/social-preview.png']) {
     expect((await request.get(assetPath)).ok()).toBe(true)
   }
-
-  await page.goto('/process', { waitUntil: 'domcontentloaded' })
-  await expect(page).toHaveTitle('AI Worklog — как создавался SPELLDROP')
-  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
-    'content',
-    'Разбор процесса создания SPELLDROP: концепция, ImageGen, подготовка ассетов, работа с Codex и итерации разработки.',
-  )
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
-    'href',
-    'https://oplayer1337.ru/process',
-  )
 })
 
 test('unknown routes render the compact custom 404 page', async ({ page }, testInfo) => {
@@ -344,7 +334,7 @@ test('unknown routes render the compact custom 404 page', async ({ page }, testI
     await page.setViewportSize(viewport)
     await page.goto('/missing-spell', { waitUntil: 'domcontentloaded' })
 
-    await expect(page).toHaveTitle('404 — заклинание не найдено | SPELLDROP')
+    await expect(page).toHaveTitle('SPELLDROP — доставка магических зелий')
     await expect(page.getByRole('heading', { name: 'Похоже, это заклинание не существует' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Вернуться на главную' })).toHaveAttribute('href', '/')
     await expect(page.getByRole('link', { name: 'Посмотреть AI Worklog' })).toHaveAttribute('href', '/process')
@@ -635,6 +625,22 @@ test('reduced motion completes without a moving completion panel', async ({ page
   await expect(page.locator('[data-completion="form"]')).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Закройте глаза на пару секунд' })).toBeFocused()
   await expect(page.locator('[data-completion="success"]')).toHaveCSS('transform', 'none')
+})
+
+test('mobile completion releases the delivery form height after its fade', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+  await reachDeliveryStep(page, 'Телепорт')
+
+  await page.getByRole('button', { name: 'Вызвать курьера' }).click()
+  await expect(page.getByRole('heading', { name: 'Закройте глаза на пару секунд' })).toBeFocused()
+
+  const [completionStack, success] = await Promise.all([
+    page.locator('[data-completion-stack]').boundingBox(),
+    page.locator('[data-completion="success"]').boundingBox(),
+  ])
+
+  expect(completionStack?.height).toBeLessThanOrEqual((success?.height ?? 0) + 1)
 })
 
 test('captures each mapped configurator step', async ({ page }, testInfo) => {

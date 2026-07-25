@@ -343,17 +343,18 @@ export function Configurator() {
     if (isLastStep) {
       const completedHeight = configuratorInnerRef.current?.getBoundingClientRect().height ?? null
 
-      setCompletionHeight(completedHeight)
-
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        setCompletionHeight(null)
         dispatch({ type: 'complete' })
         return
       }
 
+      setCompletionHeight(completedHeight)
       setIsCompleting(true)
       completionTimerRef.current = window.setTimeout(() => {
         dispatch({ type: 'complete' })
         setIsCompleting(false)
+        setCompletionHeight(null)
         completionTimerRef.current = null
       }, 280)
       return
@@ -479,7 +480,11 @@ export function Configurator() {
   if (isSuccess || isCompleting) {
     return (
       <section id="configurator" className={styles.configurator} tabIndex={-1} aria-labelledby="configurator-title">
-        <div className={styles.completionStack} style={completionHeight === null ? undefined : { height: `${completionHeight}px` }}>
+        <div
+          className={styles.completionStack}
+          data-completion-stack
+          style={isCompleting && completionHeight !== null ? { height: `${completionHeight}px` } : undefined}
+        >
           {isCompleting ? (
             <div className={styles.completionForm} data-completion="form" aria-hidden="true" inert>
               {formContent}
