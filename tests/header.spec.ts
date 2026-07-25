@@ -99,7 +99,7 @@ test('mobile navigation can be opened with the keyboard', async ({ page }) => {
   await expect(page.getByRole('navigation', { name: 'Основная навигация' })).toContainText(
     'Работа доставки',
   )
-  await expect(page.getByRole('navigation', { name: 'Основная навигация' })).toContainText('AI Worklog')
+  await expect(page.getByRole('navigation', { name: 'Основная навигация' })).not.toContainText('AI Worklog')
   await expect(page.getByRole('navigation', { name: 'Основная навигация' })).not.toContainText(
     'Конфигуратор',
   )
@@ -112,7 +112,6 @@ test('main navigation and footer links point to real sections', async ({ page })
   const links = [
     { href: '#how-it-works', label: 'Как это работает' },
     { href: '#delivery-methods', label: 'Работа доставки' },
-    { href: '/process', label: 'AI Worklog' },
   ]
 
   for (const link of links) {
@@ -125,9 +124,11 @@ test('main navigation and footer links point to real sections', async ({ page })
   }
 
   await expect(page.getByRole('contentinfo').getByText('Служба доставки заклинаний')).toBeVisible()
-  await expect(page.getByRole('contentinfo').getByRole('link', { name: 'Подобрать зелье' })).toHaveAttribute(
+  const footerNavigation = page.getByRole('navigation', { name: 'Навигация в подвале' })
+  await expect(footerNavigation.getByRole('link')).toHaveCount(1)
+  await expect(footerNavigation.getByRole('link', { name: 'AI Worklog' })).toHaveAttribute(
     'href',
-    '#configurator',
+    '/process',
   )
 })
 
@@ -195,6 +196,21 @@ test('delivery methods load their assets, respond to navigation, and fit support
         images.every((image) => image.complete && image.naturalWidth > 0),
       ),
     ).toBe(true)
+    expect(
+      await deliveryMethods.locator('article dl dd').evaluateAll((values) => {
+        const colors = values.map((value) => window.getComputedStyle(value).color)
+        return colors.every((color) => color === colors[0])
+      }),
+    ).toBe(true)
+    if (viewport.width >= 768) {
+      const express = deliveryMethods.locator('article[data-tone="express"]')
+      const copyBox = await express.locator(':scope > div').nth(1).boundingBox()
+      const artworkBox = await express.locator(':scope > div').first().boundingBox()
+      const metadataBox = await express.locator('dl').boundingBox()
+      expect(copyBox?.width).toBeGreaterThan(artworkBox?.width ?? 0)
+      expect(copyBox?.x).toBeLessThan(artworkBox?.x ?? 0)
+      expect(artworkBox?.x).toBeLessThan(metadataBox?.x ?? 0)
+    }
     await deliveryMethods.scrollIntoViewIfNeeded()
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
@@ -235,7 +251,7 @@ test('AI Worklog opens directly, survives refresh, and fits supported viewports'
       await page.getByRole('button', { name: 'Открыть меню' }).click()
       await expect(
         page.getByRole('navigation', { name: 'Основная навигация' }).getByRole('link', { name: 'AI Worklog' }),
-      ).toBeVisible()
+      ).toHaveCount(0)
       await page.getByRole('button', { name: 'Закрыть меню' }).click()
     }
     await expect(process.getByText('Материалы — за золотые, магия — за хорошую карму.')).toBeVisible()

@@ -11,7 +11,6 @@ export function Header({ isProcessPage = false }: HeaderProps) {
   const navigationItems = [
     { href: `${rootPrefix}#how-it-works`, label: 'Как это работает' },
     { href: `${rootPrefix}#delivery-methods`, label: 'Работа доставки' },
-    { href: '/process', label: 'AI Worklog' },
   ]
 
   const closeMenu = () => setIsMenuOpen(false)

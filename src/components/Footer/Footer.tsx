@@ -5,13 +5,7 @@ interface FooterProps {
 }
 
 export function Footer({ isProcessPage = false }: FooterProps) {
-  const rootPrefix = isProcessPage ? '/' : ''
-  const navigationItems = [
-    { href: `${rootPrefix}#how-it-works`, label: 'Как это работает' },
-    { href: `${rootPrefix}#delivery-methods`, label: 'Работа доставки' },
-    { href: `${rootPrefix}#configurator`, label: 'Подобрать зелье' },
-    { href: '/process', label: 'AI Worklog' },
-  ]
+  const navigationItems = [{ href: '/process', label: 'AI Worklog' }]
 
   return (
     <footer className={styles.footer}>
