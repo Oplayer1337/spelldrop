@@ -5,7 +5,9 @@ interface FooterProps {
 }
 
 export function Footer({ isProcessPage = false }: FooterProps) {
-  const navigationItems = [{ href: '/process', label: 'AI Worklog' }]
+  const navigationItems = [{ href: '/process', label: 'AI Worklog' },
+                          { href: 'https://t.me/oplayer1337', label: 'Telegram', target: '__blank'},
+                          {href: 'https://github.com/Oplayer1337/spelldrop', label: 'Github', target: '__blank'}]
 
   return (
     <footer className={styles.footer}>
@@ -17,13 +19,13 @@ export function Footer({ isProcessPage = false }: FooterProps) {
           </div>
           <nav className={styles.navigation} aria-label="Навигация в подвале">
             {navigationItems.map((item) => (
-              <a key={item.href} href={item.href}>
+              <a key={item.href} href={item.href} target={item.target}>
                 {item.label}
               </a>
             ))}
           </nav>
         </div>
-        <p className={styles.legal}>© 2026 SPELLDROP. Магия применяется на свой страх и хорошую карму.</p>
+        <p className={styles.legal}>© 2026 SPELLDROP. Задание для MOX Creative Studio.</p>
       </div>
     </footer>
   )
