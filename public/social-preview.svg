@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#08091f"/>
+      <stop offset="0.58" stop-color="#130d28"/>
+      <stop offset="1" stop-color="#2a1618"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#8745ff" stop-opacity="0.23"/>
+      <stop offset="1" stop-color="#8745ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#background)"/>
+  <ellipse cx="925" cy="280" rx="340" ry="300" fill="url(#halo)"/>
+  <g transform="translate(78 94)">
+    <path fill="#b18aff" d="M24 0 48 24 24 48 0 24z"/>
+    <path fill="#8745ff" d="M24 8 40 24 24 40 8 24z"/>
+    <path fill="#08091f" d="M24 17 31 24 24 31 17 24z"/>
+    <text x="70" y="34" fill="#f7f5fa" font-family="Manrope, Arial, sans-serif" font-size="28" font-weight="800" letter-spacing="4">SPELLDROP</text>
+  </g>
+  <text x="80" y="294" fill="#f7f5fa" font-family="Manrope, Arial, sans-serif" font-size="92" font-weight="800" letter-spacing="-5">SPELLDROP</text>
+  <text x="84" y="354" fill="#b4aec2" font-family="Manrope, Arial, sans-serif" font-size="34" font-weight="600">Доставка магических зелий</text>
+  <image href="assets/hero/hero-assets-moon-bg.png" x="730" y="70" width="410" height="359" preserveAspectRatio="xMidYMid meet" opacity="0.78"/>
+  <image href="assets/hero/hero-assets-bag.png" x="788" y="230" width="230" height="264" preserveAspectRatio="xMidYMid meet"/>
+  <image href="assets/mascot/hero-witch.png" x="620" y="130" width="520" height="454" preserveAspectRatio="xMidYMid meet"/>
+  <image href="assets/hero/hero-assets-bottle-extra-3.png" x="1022" y="112" width="128" height="122" preserveAspectRatio="xMidYMid meet"/>
+</svg>

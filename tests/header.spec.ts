@@ -304,6 +304,60 @@ test('AI Worklog opens directly, survives refresh, and fits supported viewports'
   }
 })
 
+test('route metadata and production branding assets are configured', async ({ page, request }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+  await expect(page).toHaveTitle('SPELLDROP — доставка магических зелий')
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    'content',
+    'Интерактивный сервис доставки зелий: выберите ситуацию, настройте эффекты, флакон и способ доставки.',
+  )
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://oplayer1337.ru/')
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+    'content',
+    'https://oplayer1337.ru/social-preview.png',
+  )
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image')
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/site.webmanifest')
+
+  for (const assetPath of ['/favicon.svg', '/favicon.ico', '/apple-touch-icon.png', '/social-preview.png']) {
+    expect((await request.get(assetPath)).ok()).toBe(true)
+  }
+
+  await page.goto('/process', { waitUntil: 'domcontentloaded' })
+  await expect(page).toHaveTitle('AI Worklog — как создавался SPELLDROP')
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    'content',
+    'Разбор процесса создания SPELLDROP: концепция, ImageGen, подготовка ассетов, работа с Codex и итерации разработки.',
+  )
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    'href',
+    'https://oplayer1337.ru/process',
+  )
+})
+
+test('unknown routes render the compact custom 404 page', async ({ page }, testInfo) => {
+  for (const viewport of [
+    { name: 'desktop', width: 1440, height: 900 },
+    { name: 'mobile', width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport)
+    await page.goto('/missing-spell', { waitUntil: 'domcontentloaded' })
+
+    await expect(page).toHaveTitle('404 — заклинание не найдено | SPELLDROP')
+    await expect(page.getByRole('heading', { name: 'Похоже, это заклинание не существует' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Вернуться на главную' })).toHaveAttribute('href', '/')
+    await expect(page.getByRole('link', { name: 'Посмотреть AI Worklog' })).toHaveAttribute('href', '/process')
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+      .toBe(true)
+    await page.screenshot({ path: testInfo.outputPath(`not-found-${viewport.name}.png`), fullPage: true })
+  }
+
+  await page.getByRole('link', { name: 'Вернуться на главную' }).click()
+  await expect(page.getByRole('heading', { name: 'Доставка заклинаний' })).toBeVisible()
+})
+
 test('route hashes scroll to main-page sections after navigation and refresh', async ({ page }) => {
   const destinations = [
     { label: 'Как это работает', href: '/#how-it-works', target: '#how-it-works' },
