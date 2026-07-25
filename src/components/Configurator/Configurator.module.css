@@ -372,15 +372,72 @@
 
 .successState {
   display: grid;
+  align-self: center;
+  width: 100%;
   max-width: 520px;
   justify-items: center;
   margin: 0 auto;
   text-align: center;
 }
 
+.completionStack {
+  display: grid;
+  width: min(var(--configurator-max-width), calc(100% - (var(--space-desktop) * 2)));
+  margin: 0 auto;
+}
+
+.completionForm,
+.successState {
+  grid-area: 1 / 1;
+}
+
+.completionForm {
+  animation: completion-form-exit 280ms ease-out both;
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+
+.successStateEntering {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  animation: completion-success-enter 280ms ease-out both;
+  will-change: opacity, transform;
+}
+
+@keyframes completion-form-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes completion-success-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .successState > img {
   width: 176px;
   margin-bottom: 16px;
+}
+
+.successState .successDetail {
+  max-width: 460px;
+  margin-top: 8px;
+  font-size: 14px;
 }
 
 .successState > button {
@@ -402,6 +459,10 @@
   .deliveryCard {
     grid-template-columns: minmax(150px, 0.85fr) minmax(160px, 0.9fr) minmax(206px, 1.1fr) minmax(104px, 0.48fr) 32px;
     padding: 18px;
+  }
+
+  .completionStack {
+    width: min(var(--configurator-max-width), calc(100% - (var(--space-tablet) * 2)));
   }
 
   .deliveryArtwork img {
@@ -529,6 +590,10 @@
     width: calc(100% - (var(--space-mobile) * 2));
   }
 
+  .completionStack {
+    width: calc(100% - (var(--space-mobile) * 2));
+  }
+
   .stepHeader {
     margin: 24px auto 26px;
   }
@@ -624,6 +689,13 @@
   .stepContentExiting.stepContentTransitioning {
     opacity: 1;
     transform: none;
+  }
+
+  .completionForm,
+  .successStateEntering {
+    opacity: 1;
+    transform: none;
+    animation: none;
   }
 
   .deliveryCard {

@@ -22,6 +22,30 @@ import { SelectionGroup } from '../../ui/SelectionGroup/SelectionGroup'
 import styles from './Configurator.module.css'
 import { BottomSummary } from './BottomSummary'
 
+const completionContentByDelivery = {
+  normal: {
+    title: 'Сова уже в пути',
+    description: 'Мы отправили подтверждение и скоро покажем статус доставки.',
+  },
+  express: {
+    title: 'Курьер уже в пути',
+    description: 'Мы отправили подтверждение и скоро покажем статус доставки.',
+  },
+  teleport: {
+    title: 'Закройте глаза на пару секунд',
+    description: 'А теперь оглянитесь по сторонам — зелье уже появилось в ближайшем удобном месте, о котором вы подумали.',
+    detail: 'Стол, полка, свободный стул или место за спиной — главное, чтобы там было достаточно пространства.',
+  },
+} as const
+
+const getCompletionContent = (deliveryId: string | undefined) => {
+  if (deliveryId === 'express' || deliveryId === 'teleport' || deliveryId === 'normal') {
+    return completionContentByDelivery[deliveryId]
+  }
+
+  return completionContentByDelivery.normal
+}
+
 const toSelectionValue = (option: ConfiguratorOption): SelectionValue => ({
   id: option.id,
   label: option.label,
@@ -177,15 +201,19 @@ function StepContent({ view, selections, onSelectSingle, onToggleEffect }: StepC
 export function Configurator() {
   const [state, dispatch] = useReducer(configuratorReducer, initialConfiguratorState)
   const stepHeadingRef = useRef<HTMLHeadingElement>(null)
+  const configuratorInnerRef = useRef<HTMLDivElement>(null)
   const stepContentStackRef = useRef<HTMLDivElement>(null)
   const incomingContentRef = useRef<HTMLDivElement>(null)
   const shouldFocusStep = useRef(false)
+  const completionTimerRef = useRef<number | null>(null)
   const displayedStepRef = useRef<ConfiguratorStepId>('situation')
   const [displayedStep, setDisplayedStep] = useState<ConfiguratorStepId>('situation')
   const [previousStep, setPreviousStep] = useState<ConfiguratorStepId | null>(null)
   const [isStepTransitioning, setIsStepTransitioning] = useState(false)
   const [transitionHeight, setTransitionHeight] = useState<number | null>(null)
   const [heightReserve, setHeightReserve] = useState(0)
+  const [isCompleting, setIsCompleting] = useState(false)
+  const [completionHeight, setCompletionHeight] = useState<number | null>(null)
   const isSuccess = state.currentView === 'success'
   const currentIndex = isSuccess
     ? configuratorSteps.length - 1
@@ -194,15 +222,34 @@ export function Configurator() {
   const isFirstStep = currentIndex === 0
   const isLastStep = currentIndex === configuratorSteps.length - 1
   const summaryItems = getSummaryItems(state.selections)
+  const completionContent = getCompletionContent(state.selections.delivery?.id)
+
+  useEffect(
+    () => () => {
+      if (completionTimerRef.current !== null) {
+        window.clearTimeout(completionTimerRef.current)
+      }
+    },
+    [],
+  )
 
   useEffect(() => {
-    if (!shouldFocusStep.current) {
+    if (!shouldFocusStep.current || isCompleting) {
       return
     }
 
     stepHeadingRef.current?.focus({ preventScroll: true })
     shouldFocusStep.current = false
-  }, [state.currentView])
+  }, [isCompleting, state.currentView])
+
+  useLayoutEffect(() => {
+    if (!isSuccess || isCompleting) {
+      return
+    }
+
+    stepHeadingRef.current?.focus({ preventScroll: true })
+    shouldFocusStep.current = false
+  }, [isCompleting, isSuccess])
 
   useLayoutEffect(() => {
     if (state.currentView === 'success' || state.currentView === displayedStepRef.current) {
@@ -278,7 +325,7 @@ export function Configurator() {
   }, [isSuccess, state.currentView])
 
   const goBack = () => {
-    if (isFirstStep || isSuccess) {
+    if (isFirstStep || isSuccess || isCompleting) {
       return
     }
 
@@ -287,14 +334,28 @@ export function Configurator() {
   }
 
   const goForward = () => {
-    if (isSuccess) {
+    if (isSuccess || isCompleting) {
       return
     }
 
     shouldFocusStep.current = true
 
     if (isLastStep) {
-      dispatch({ type: 'complete' })
+      const completedHeight = configuratorInnerRef.current?.getBoundingClientRect().height ?? null
+
+      setCompletionHeight(completedHeight)
+
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        dispatch({ type: 'complete' })
+        return
+      }
+
+      setIsCompleting(true)
+      completionTimerRef.current = window.setTimeout(() => {
+        dispatch({ type: 'complete' })
+        setIsCompleting(false)
+        completionTimerRef.current = null
+      }, 280)
       return
     }
 
@@ -316,6 +377,8 @@ export function Configurator() {
     setIsStepTransitioning(false)
     setTransitionHeight(null)
     setHeightReserve(0)
+    setIsCompleting(false)
+    setCompletionHeight(null)
     dispatch({ type: 'reset' })
   }
 
@@ -336,22 +399,107 @@ export function Configurator() {
       return Boolean(state.selections.bottle)
     }
 
-    return Boolean(state.selections.delivery)
+    return Boolean(state.selections.delivery) && !isCompleting
   })()
 
-  if (isSuccess) {
+  const formContent = (
+    <div ref={configuratorInnerRef} className={styles.inner}>
+      <div className={styles.stepHeader}>
+        <h2
+          id={isCompleting ? undefined : 'configurator-title'}
+          ref={isCompleting ? undefined : stepHeadingRef}
+          tabIndex={-1}
+        >
+          {currentStep.title}
+        </h2>
+        <p className={styles.description}>{currentStep.description}</p>
+        <p className={styles.stepCount} aria-live="polite">
+          Шаг {currentIndex + 1} из {configuratorSteps.length}
+        </p>
+      </div>
+
+      <div className={styles.stepPanel} aria-live="polite">
+        <div
+          ref={stepContentStackRef}
+          className={styles.stepContentStack}
+          data-step-content-stack
+          style={transitionHeight === null ? undefined : { height: `${transitionHeight}px` }}
+        >
+          {previousStep ? (
+            <div
+              className={`${styles.stepContent} ${styles.stepContentExiting} ${
+                isStepTransitioning ? styles.stepContentTransitioning : ''
+              }`}
+              aria-hidden="true"
+              data-step-content="outgoing"
+              inert
+            >
+              <StepContent
+                view={previousStep}
+                selections={state.selections}
+                onSelectSingle={selectSingle}
+                onToggleEffect={toggleEffect}
+              />
+            </div>
+          ) : null}
+          <div
+            ref={incomingContentRef}
+            className={`${styles.stepContent} ${
+              previousStep ? styles.stepContentEntering : ''
+            } ${isStepTransitioning ? styles.stepContentTransitioning : ''}`}
+            data-step-content="incoming"
+          >
+            <StepContent
+              view={displayedStep}
+              selections={state.selections}
+              onSelectSingle={selectSingle}
+              onToggleEffect={toggleEffect}
+            />
+          </div>
+        </div>
+      </div>
+
+      <BottomSummary
+        items={summaryItems}
+        isFirstStep={isFirstStep}
+        canProceed={canProceed}
+        nextLabel={currentStep.nextLabel}
+        mascotSrc={
+          state.currentView === 'delivery'
+            ? configuratorAssets.mascot.alternative
+            : configuratorAssets.mascot.default
+        }
+        mascotPosition={state.currentView === 'delivery' ? 'right' : 'left'}
+        onBack={goBack}
+        onNext={goForward}
+      />
+    </div>
+  )
+
+  if (isSuccess || isCompleting) {
     return (
       <section id="configurator" className={styles.configurator} tabIndex={-1} aria-labelledby="configurator-title">
-        <div className={`${styles.inner} ${styles.successState}`}>
-          <img src={configuratorAssets.mascot.alternative} alt="" />
-          <p className={styles.stepCount}>Заказ принят</p>
-          <h2 id="configurator-title" ref={stepHeadingRef} tabIndex={-1}>
-            Курьер уже в пути
-          </h2>
-          <p>Мы отправили подтверждение и скоро покажем статус доставки.</p>
-          <button type="button" onClick={resetConfigurator}>
-            Собрать новое зелье
-          </button>
+        <div className={styles.completionStack} style={completionHeight === null ? undefined : { height: `${completionHeight}px` }}>
+          {isCompleting ? (
+            <div className={styles.completionForm} data-completion="form" aria-hidden="true" inert>
+              {formContent}
+            </div>
+          ) : null}
+          <div
+            className={`${styles.successState} ${isCompleting ? styles.successStateEntering : ''}`}
+            data-completion="success"
+          >
+            <img src={configuratorAssets.mascot.alternative} alt="" />
+            <p className={styles.stepCount}>Заказ принят</p>
+            <h2 id="configurator-title" ref={stepHeadingRef} tabIndex={-1}>
+              {completionContent.title}
+            </h2>
+            <p>{completionContent.description}</p>
+            {'detail' in completionContent ? <p className={styles.successDetail}>{completionContent.detail}</p> : null}
+            <button type="button" onClick={resetConfigurator}>
+              Собрать новое зелье
+            </button>
+          </div>
         </div>
       </section>
     )
@@ -365,73 +513,7 @@ export function Configurator() {
       tabIndex={-1}
       aria-labelledby="configurator-title"
     >
-      <div className={styles.inner}>
-        <div className={styles.stepHeader}>
-          <h2 id="configurator-title" ref={stepHeadingRef} tabIndex={-1}>
-            {currentStep.title}
-          </h2>
-          <p className={styles.description}>{currentStep.description}</p>
-          <p className={styles.stepCount} aria-live="polite">
-            Шаг {currentIndex + 1} из {configuratorSteps.length}
-          </p>
-        </div>
-
-        <div className={styles.stepPanel} aria-live="polite">
-          <div
-            ref={stepContentStackRef}
-            className={styles.stepContentStack}
-            data-step-content-stack
-            style={transitionHeight === null ? undefined : { height: `${transitionHeight}px` }}
-          >
-            {previousStep ? (
-              <div
-                className={`${styles.stepContent} ${styles.stepContentExiting} ${
-                  isStepTransitioning ? styles.stepContentTransitioning : ''
-                }`}
-                aria-hidden="true"
-                data-step-content="outgoing"
-                inert
-              >
-                <StepContent
-                  view={previousStep}
-                  selections={state.selections}
-                  onSelectSingle={selectSingle}
-                  onToggleEffect={toggleEffect}
-                />
-              </div>
-            ) : null}
-            <div
-              ref={incomingContentRef}
-              className={`${styles.stepContent} ${
-                previousStep ? styles.stepContentEntering : ''
-              } ${isStepTransitioning ? styles.stepContentTransitioning : ''}`}
-              data-step-content="incoming"
-            >
-              <StepContent
-                view={displayedStep}
-                selections={state.selections}
-                onSelectSingle={selectSingle}
-                onToggleEffect={toggleEffect}
-              />
-            </div>
-          </div>
-        </div>
-
-        <BottomSummary
-          items={summaryItems}
-          isFirstStep={isFirstStep}
-          canProceed={canProceed}
-          nextLabel={currentStep.nextLabel}
-          mascotSrc={
-            state.currentView === 'delivery'
-              ? configuratorAssets.mascot.alternative
-              : configuratorAssets.mascot.default
-          }
-          mascotPosition={state.currentView === 'delivery' ? 'right' : 'left'}
-          onBack={goBack}
-          onNext={goForward}
-        />
-      </div>
+      {formContent}
     </section>
   )
 }

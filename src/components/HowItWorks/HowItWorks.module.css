@@ -237,7 +237,7 @@
 
 @media (max-width: 767px) {
   .section {
-    padding: 4px 0 32px;
+    padding: 64px 0 32px;
   }
 
   .inner {

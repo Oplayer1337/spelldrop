@@ -52,6 +52,16 @@ const clickWithoutViewportShift = async (page: Page, locator: Locator) => {
 const optionButton = (page: Page, label: string) =>
   page.getByRole('button', { name: new RegExp(`^${label}`) })
 
+const reachDeliveryStep = async (page: Page, deliveryLabel: string) => {
+  await page.getByRole('button', { name: /^Потерялась вещь/ }).click()
+  await page.getByRole('button', { name: 'Показать зелья' }).click()
+  await page.getByRole('button', { name: /^Быстрый эффект/ }).click()
+  await page.getByRole('button', { name: 'Выбрать флакон' }).click()
+  await page.getByRole('button', { name: /^M — Средний/ }).click()
+  await page.getByRole('button', { name: 'Перейти к доставке' }).click()
+  await page.getByRole('button', { name: new RegExp(`^${deliveryLabel}`) }).click()
+}
+
 for (const viewport of viewports) {
   test(`header fits the ${viewport.name} viewport`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport)
@@ -159,6 +169,7 @@ test('hero CTA focuses the configurator target', async ({ page }) => {
 test('brand story fits the supported viewports and is reachable from navigation', async ({ page }, testInfo) => {
   const storyViewports = [
     { name: '390x844', width: 390, height: 844 },
+    { name: '430x932', width: 430, height: 932 },
     { name: '768x1024', width: 768, height: 1024 },
     { name: '1024x768', width: 1024, height: 768 },
     { name: '1440x1000', width: 1440, height: 1000 },
@@ -169,11 +180,24 @@ test('brand story fits the supported viewports and is reachable from navigation'
     await page.goto('/', { waitUntil: 'domcontentloaded' })
 
     const story = page.locator('#how-it-works')
+    const storyReveal = story.locator(':scope > div[data-reveal]')
     await expect(page.getByRole('banner').locator('a[href="#how-it-works"]')).toHaveCount(1)
     await expect(
       story.getByRole('heading', { name: 'Вы выбираете зелье — остальное делают ведьмочки' }),
     ).toBeVisible()
+    if (viewport.width <= 430) {
+      const heroWitch = page
+        .getByRole('img', { name: 'Ведьма-курьер летит на метле с сумкой зелий на фоне фиолетовой луны' })
+        .locator('img')
+        .nth(2)
+      const heading = story.getByRole('heading', { name: 'Вы выбираете зелье — остальное делают ведьмочки' })
+      const [witchBox, headingBox] = await Promise.all([heroWitch.boundingBox(), heading.boundingBox()])
+
+      expect(headingBox?.y).toBeGreaterThan((witchBox?.y ?? 0) + (witchBox?.height ?? 0) + 24)
+    }
     await story.scrollIntoViewIfNeeded()
+    await expect(storyReveal).toHaveAttribute('data-reveal', 'revealed')
+    await expect(storyReveal).toHaveCSS('opacity', '1')
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
       .toBe(true)
@@ -501,9 +525,62 @@ test('configurator maps selections into the summary and completes delivery', asy
   await page.getByRole('button', { name: 'Перейти к доставке' }).click()
 
   await page.getByRole('button', { name: /^Экспресс/ }).click()
+  const finalButton = page.getByRole('button', { name: 'Вызвать курьера' })
+  await finalButton.scrollIntoViewIfNeeded()
+  const beforeCompletionScroll = await page.evaluate(() => window.scrollY)
+  await finalButton.click()
+
+  await expect(page.locator('[data-completion="form"]')).toHaveCount(1)
+  await expect(page.locator('[data-completion="success"]')).toHaveCount(1)
+  await expect
+    .poll(() => page.evaluate((initialScrollY) => Math.abs(window.scrollY - initialScrollY), beforeCompletionScroll))
+    .toBeLessThanOrEqual(2)
+  await expect(page.getByRole('heading', { name: 'Курьер уже в пути' })).toBeFocused()
+})
+
+test('completion copy follows the selected delivery ID and restarts cleanly', async ({ page }, testInfo) => {
+  const completionCases = [
+    { deliveryLabel: 'Обычная', title: 'Сова уже в пути' },
+    { deliveryLabel: 'Телепорт', title: 'Закройте глаза на пару секунд' },
+  ]
+
+  await page.setViewportSize({ width: 1440, height: 1000 })
+
+  for (const completionCase of completionCases) {
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
+    await reachDeliveryStep(page, completionCase.deliveryLabel)
+    await page.getByRole('button', { name: 'Вызвать курьера' }).click()
+
+    await expect(page.getByRole('heading', { name: completionCase.title })).toBeFocused()
+    await expect(page.getByRole('button', { name: 'Собрать новое зелье' })).toBeVisible()
+    await page.locator('#configurator').screenshot({
+      path: testInfo.outputPath(`configurator-success-${completionCase.deliveryLabel}.png`),
+    })
+
+    if (completionCase.deliveryLabel === 'Телепорт') {
+      await expect(
+        page.getByText(
+          'А теперь оглянитесь по сторонам — зелье уже появилось в ближайшем удобном месте, о котором вы подумали.',
+        ),
+      ).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Курьер уже в пути' })).toHaveCount(0)
+    }
+
+    await page.getByRole('button', { name: 'Собрать новое зелье' }).click()
+    await expect(page.getByRole('heading', { name: 'Что сегодня пошло не по плану?' })).toBeVisible()
+  }
+})
+
+test('reduced motion completes without a moving completion panel', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+  await reachDeliveryStep(page, 'Телепорт')
   await page.getByRole('button', { name: 'Вызвать курьера' }).click()
 
-  await expect(page.getByRole('heading', { name: 'Курьер уже в пути' })).toBeFocused()
+  await expect(page.locator('[data-completion="form"]')).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Закройте глаза на пару секунд' })).toBeFocused()
+  await expect(page.locator('[data-completion="success"]')).toHaveCSS('transform', 'none')
 })
 
 test('captures each mapped configurator step', async ({ page }, testInfo) => {
