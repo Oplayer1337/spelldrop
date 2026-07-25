@@ -99,6 +99,7 @@ test('mobile navigation can be opened with the keyboard', async ({ page }) => {
   await expect(page.getByRole('navigation', { name: 'Основная навигация' })).toContainText(
     'Работа доставки',
   )
+  await expect(page.getByRole('navigation', { name: 'Основная навигация' })).toContainText('AI Worklog')
   await expect(page.getByRole('navigation', { name: 'Основная навигация' })).not.toContainText(
     'Конфигуратор',
   )
@@ -111,13 +112,16 @@ test('main navigation and footer links point to real sections', async ({ page })
   const links = [
     { href: '#how-it-works', label: 'Как это работает' },
     { href: '#delivery-methods', label: 'Работа доставки' },
+    { href: '/process', label: 'AI Worklog' },
   ]
 
   for (const link of links) {
     await expect(
       page.getByRole('navigation', { name: 'Основная навигация' }).getByRole('link', { name: link.label }),
     ).toHaveAttribute('href', link.href)
-    await expect(page.locator(link.href)).toHaveCount(1)
+    if (link.href.startsWith('#')) {
+      await expect(page.locator(link.href)).toHaveCount(1)
+    }
   }
 
   await expect(page.getByRole('contentinfo').getByText('Служба доставки заклинаний')).toBeVisible()
@@ -196,6 +200,57 @@ test('delivery methods load their assets, respond to navigation, and fit support
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
       .toBe(true)
     await deliveryMethods.screenshot({ path: testInfo.outputPath(`delivery-methods-${viewport.name}.png`) })
+  }
+})
+
+test('AI Worklog opens directly, survives refresh, and fits supported viewports', async ({ page }, testInfo) => {
+  const processViewports = [
+    { name: '390x844', width: 390, height: 844 },
+    { name: '768x1024', width: 768, height: 1024 },
+    { name: '1024x768', width: 1024, height: 768 },
+    { name: '1440x1000', width: 1440, height: 1000 },
+  ]
+
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto('/process', { waitUntil: 'domcontentloaded' })
+  await expect(page.getByRole('heading', { name: 'Как создавался SPELLDROP' })).toBeVisible()
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await expect(page.getByRole('heading', { name: 'Как создавался SPELLDROP' })).toBeVisible()
+  await expect(page.getByRole('main').getByRole('link', { name: 'Открыть SPELLDROP' })).toHaveAttribute(
+    'href',
+    '/',
+  )
+  await expect(
+    page.getByRole('navigation', { name: 'Основная навигация' }).getByRole('link', {
+      name: 'Как это работает',
+    }),
+  ).toHaveAttribute('href', '/#how-it-works')
+
+  for (const viewport of processViewports) {
+    await page.setViewportSize(viewport)
+    await page.goto('/process', { waitUntil: 'domcontentloaded' })
+
+    const process = page.getByRole('main')
+    if (viewport.width === 390) {
+      await page.getByRole('button', { name: 'Открыть меню' }).click()
+      await expect(
+        page.getByRole('navigation', { name: 'Основная навигация' }).getByRole('link', { name: 'AI Worklog' }),
+      ).toBeVisible()
+      await page.getByRole('button', { name: 'Закрыть меню' }).click()
+    }
+    await expect(process.getByText('Материалы — за золотые, магия — за хорошую карму.')).toBeVisible()
+    await expect(
+      process.getByText('Обернитесь — зелье уже за вашей спиной. Если там нашлось достаточно места.'),
+    ).toBeVisible()
+    expect(
+      await process.locator('img').evaluateAll((images) =>
+        images.every((image) => image.complete && image.naturalWidth > 0),
+      ),
+    ).toBe(true)
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+      .toBe(true)
+    await page.screenshot({ path: testInfo.outputPath(`process-${viewport.name}.png`), fullPage: true })
   }
 })
 

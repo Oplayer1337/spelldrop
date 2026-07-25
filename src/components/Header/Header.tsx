@@ -1,20 +1,25 @@
 import { useState } from 'react'
 import styles from './Header.module.css'
 
-const navigationItems = [
-  { href: '#how-it-works', label: 'Как это работает' },
-  { href: '#delivery-methods', label: 'Работа доставки' },
-]
+interface HeaderProps {
+  isProcessPage?: boolean
+}
 
-export function Header() {
+export function Header({ isProcessPage = false }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const rootPrefix = isProcessPage ? '/' : ''
+  const navigationItems = [
+    { href: `${rootPrefix}#how-it-works`, label: 'Как это работает' },
+    { href: `${rootPrefix}#delivery-methods`, label: 'Работа доставки' },
+    { href: '/process', label: 'AI Worklog' },
+  ]
 
   const closeMenu = () => setIsMenuOpen(false)
 
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
-        <a className={styles.brand} href="#main-content" onClick={closeMenu}>
+        <a className={styles.brand} href={isProcessPage ? '/' : '#main-content'} onClick={closeMenu}>
           <span className={styles.brandMark} aria-hidden="true" />
           <span className={styles.brandName}>SPELLDROP</span>
         </a>
@@ -43,7 +48,11 @@ export function Header() {
           ))}
         </nav>
 
-        <a className={styles.orderLink} href="#configurator" aria-label="Перейти к конфигуратору">
+        <a
+          className={styles.orderLink}
+          href={isProcessPage ? '/' : '#configurator'}
+          aria-label={isProcessPage ? 'Открыть SPELLDROP' : 'Перейти к конфигуратору'}
+        >
           <span className={styles.cubeIcon} aria-hidden="true" />
         </a>
       </div>

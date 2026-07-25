@@ -1,18 +1,24 @@
 import styles from './Footer.module.css'
 
-const navigationItems = [
-  { href: '#how-it-works', label: 'Как это работает' },
-  { href: '#delivery-methods', label: 'Работа доставки' },
-  { href: '#configurator', label: 'Подобрать зелье' },
-]
+interface FooterProps {
+  isProcessPage?: boolean
+}
 
-export function Footer() {
+export function Footer({ isProcessPage = false }: FooterProps) {
+  const rootPrefix = isProcessPage ? '/' : ''
+  const navigationItems = [
+    { href: `${rootPrefix}#how-it-works`, label: 'Как это работает' },
+    { href: `${rootPrefix}#delivery-methods`, label: 'Работа доставки' },
+    { href: `${rootPrefix}#configurator`, label: 'Подобрать зелье' },
+    { href: '/process', label: 'AI Worklog' },
+  ]
+
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
         <div className={styles.topRow}>
           <div className={styles.brand}>
-            <a href="#main-content">SPELLDROP</a>
+            <a href={isProcessPage ? '/' : '#main-content'}>SPELLDROP</a>
             <p>Служба доставки заклинаний</p>
           </div>
           <nav className={styles.navigation} aria-label="Навигация в подвале">

@@ -9,6 +9,7 @@ describe('App', () => {
     expect(markup).toContain('SPELLDROP')
     expect(markup).toContain('Как это работает')
     expect(markup).toContain('Работа доставки')
+    expect(markup).toContain('AI Worklog')
     expect(markup).toContain('aria-label="Основная навигация"')
     expect(markup).toContain('заклинаний')
     expect(markup).toContain('Подобрать заклинание')
